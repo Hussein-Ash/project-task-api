@@ -5,8 +5,11 @@ services:
       POSTGRES_DB: projecttaskapi
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+    # Published on 5433 so the container does not collide with a PostgreSQL install
+    # already occupying the host's default 5432. Inside the compose network the api
+    # service still reaches it on 5432 via the "db" hostname.
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:

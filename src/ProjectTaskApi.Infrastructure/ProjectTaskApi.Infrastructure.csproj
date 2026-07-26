@@ -1,6 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- EF Core and Npgsql packages arrive in Phase 2, alongside the DbContext. -->
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <!--
+      Required by `dotnet ef migrations`; not used at runtime. Held at 10.0.4 to match the
+      EF Core version Npgsql 10.0.3 is built against — a newer Design package drags in a
+      different EF Core and the assembly versions then conflict.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ProjectTaskApi.Application\ProjectTaskApi.Application.csproj" />

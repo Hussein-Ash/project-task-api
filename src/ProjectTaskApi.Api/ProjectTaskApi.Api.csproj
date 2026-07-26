@@ -9,6 +9,15 @@
     -->
     <PackageReference Include="Microsoft.OpenApi" Version="2.11.0" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.16.16" />
+    <!--
+      The EF Core tools resolve the DbContext through the startup project, so the design-time
+      package has to be referenced here as well as in Infrastructure. PrivateAssets keeps it
+      out of the published output.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <!-- The API is the composition root, so it references the concrete Infrastructure types to register them. -->
