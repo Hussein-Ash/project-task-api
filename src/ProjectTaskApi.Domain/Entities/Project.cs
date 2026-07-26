@@ -35,14 +35,22 @@ public sealed class Project
     /// </summary>
     public static Project Create(string name)
     {
+        // UUID v7 is time-ordered, so inserts append to the index rather than fragmenting it.
+        return new Project(Guid.CreateVersion7(), Validate(name), DateTimeOffset.UtcNow);
+    }
+
+    /// <summary>
+    /// Applies a full replacement. <see cref="CreatedAt"/> and the task collection are
+    /// deliberately untouched: renaming a project does not re-date it or disturb its tasks.
+    /// </summary>
+    public void Update(string name) => Name = Validate(name);
+
+    private static string Validate(string name)
+    {
         var trimmed = name?.Trim() ?? string.Empty;
 
-        if (trimmed.Length == 0)
-        {
-            throw new DomainValidationException("Project name must not be empty or whitespace.");
-        }
-
-        // UUID v7 is time-ordered, so inserts append to the index rather than fragmenting it.
-        return new Project(Guid.CreateVersion7(), trimmed, DateTimeOffset.UtcNow);
+        return trimmed.Length == 0
+            ? throw new DomainValidationException("Project name must not be empty or whitespace.")
+            : trimmed;
     }
 }

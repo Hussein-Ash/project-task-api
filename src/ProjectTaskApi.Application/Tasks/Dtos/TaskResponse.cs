@@ -5,4 +5,5 @@ public sealed record TaskResponse(
     Guid ProjectId,
     string Title,
     bool Completed,
+    DateTimeOffset? CompletedAt,
     DateTimeOffset CreatedAt);

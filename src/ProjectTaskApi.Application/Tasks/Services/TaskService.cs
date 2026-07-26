@@ -1,9 +1,11 @@
-using ProjectTaskApi.Application.Projects;
+using ProjectTaskApi.Application.Projects.Interfaces;
 using ProjectTaskApi.Application.Tasks.Dtos;
+using ProjectTaskApi.Application.Tasks.Interfaces;
+using ProjectTaskApi.Application.Tasks.Utilities;
 using ProjectTaskApi.Domain.Entities;
 using ProjectTaskApi.Domain.Exceptions;
 
-namespace ProjectTaskApi.Application.Tasks;
+namespace ProjectTaskApi.Application.Tasks.Services;
 
 public sealed class TaskService(
     ITaskRepository taskRepository,
@@ -36,6 +38,7 @@ public sealed class TaskService(
             ?? throw new TaskNotFoundException(id);
 
         // Completed is non-null here: [Required] on a nullable bool rejects an absent value.
+        // The entity keeps CompletedAt in step with the flag.
         task.Update(request.Title, request.Completed!.Value);
 
         await taskRepository.UpdateAsync(task, cancellationToken);

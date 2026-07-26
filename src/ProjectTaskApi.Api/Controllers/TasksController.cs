@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using ProjectTaskApi.Application.Tasks;
 using ProjectTaskApi.Application.Tasks.Dtos;
+using ProjectTaskApi.Application.Tasks.Interfaces;
 
 namespace ProjectTaskApi.Api.Controllers;
 

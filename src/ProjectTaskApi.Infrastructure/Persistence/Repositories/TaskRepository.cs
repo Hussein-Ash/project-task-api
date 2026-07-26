@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using ProjectTaskApi.Application.Tasks;
+using ProjectTaskApi.Application.Tasks.Interfaces;
 using ProjectTaskApi.Domain.Entities;
 
 namespace ProjectTaskApi.Infrastructure.Persistence.Repositories;

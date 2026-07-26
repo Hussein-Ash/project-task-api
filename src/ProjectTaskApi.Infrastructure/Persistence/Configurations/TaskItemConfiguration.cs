@@ -30,6 +30,10 @@ public sealed class TaskItemConfiguration : IEntityTypeConfiguration<TaskItem>
             .HasDefaultValue(false)
             .IsRequired();
 
+        // Nullable: a task that has never been completed has no completion time.
+        builder.Property(task => task.CompletedAt)
+            .HasColumnName("completed_at");
+
         builder.Property(task => task.CreatedAt)
             .HasColumnName("created_at")
             .IsRequired();

@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using ProjectTaskApi.Application.Common;
-using ProjectTaskApi.Application.Projects;
 using ProjectTaskApi.Application.Projects.Dtos;
-using ProjectTaskApi.Application.Tasks;
+using ProjectTaskApi.Application.Projects.Interfaces;
 using ProjectTaskApi.Application.Tasks.Dtos;
+using ProjectTaskApi.Application.Tasks.Interfaces;
 
 namespace ProjectTaskApi.Api.Controllers;
 
@@ -47,6 +47,17 @@ public sealed class ProjectsController(
 
         return CreatedAtRoute(nameof(GetProjectById), new { id = project.Id }, project);
     }
+
+    /// <summary>Replaces a project's mutable state. Its tasks are untouched.</summary>
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProjectResponse>> Update(
+        Guid id,
+        UpdateProjectRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await projectService.UpdateAsync(id, request, cancellationToken));
 
     /// <summary>
     /// Creates a task for a project. Lives here rather than on the tasks controller because

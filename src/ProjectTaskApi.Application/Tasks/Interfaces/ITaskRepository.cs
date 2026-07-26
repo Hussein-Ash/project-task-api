@@ -1,6 +1,6 @@
 using ProjectTaskApi.Domain.Entities;
 
-namespace ProjectTaskApi.Application.Tasks;
+namespace ProjectTaskApi.Application.Tasks.Interfaces;
 
 public interface ITaskRepository
 {

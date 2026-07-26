@@ -1,7 +1,7 @@
 using ProjectTaskApi.Application.Common;
 using ProjectTaskApi.Application.Projects.Dtos;
 
-namespace ProjectTaskApi.Application.Projects;
+namespace ProjectTaskApi.Application.Projects.Interfaces;
 
 public interface IProjectService
 {
@@ -20,5 +20,11 @@ public interface IProjectService
 
     Task<ProjectResponse> CreateAsync(
         CreateProjectRequest request,
+        CancellationToken cancellationToken);
+
+    /// <exception cref="Domain.Exceptions.ProjectNotFoundException">No project has that ID.</exception>
+    Task<ProjectResponse> UpdateAsync(
+        Guid id,
+        UpdateProjectRequest request,
         CancellationToken cancellationToken);
 }

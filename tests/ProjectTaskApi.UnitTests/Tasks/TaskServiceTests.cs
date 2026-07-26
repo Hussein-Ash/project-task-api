@@ -1,7 +1,8 @@
 using Moq;
-using ProjectTaskApi.Application.Projects;
-using ProjectTaskApi.Application.Tasks;
+using ProjectTaskApi.Application.Projects.Interfaces;
 using ProjectTaskApi.Application.Tasks.Dtos;
+using ProjectTaskApi.Application.Tasks.Interfaces;
+using ProjectTaskApi.Application.Tasks.Services;
 using ProjectTaskApi.Domain.Entities;
 using ProjectTaskApi.Domain.Exceptions;
 using Shouldly;
@@ -81,6 +82,8 @@ public sealed class TaskServiceTests
             CancellationToken.None);
 
         result.Completed.ShouldBeFalse();
+        // A task that has never been completed carries no completion time.
+        result.CompletedAt.ShouldBeNull();
     }
 
     [Fact]
@@ -105,6 +108,74 @@ public sealed class TaskServiceTests
         result.Completed.ShouldBeTrue();
         // A task cannot change projects, so the id must survive the update untouched.
         result.ProjectId.ShouldBe(projectId);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenCompleting_StampsCompletedAt()
+    {
+        var task = TaskItem.Create(Guid.CreateVersion7(), "Design homepage");
+        task.CompletedAt.ShouldBeNull();
+
+        _taskRepository
+            .Setup(repository => repository.GetByIdAsync(task.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(task);
+        _taskRepository
+            .Setup(repository => repository.UpdateAsync(task, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var result = await _sut.UpdateAsync(
+            task.Id,
+            new UpdateTaskRequest { Title = "Design homepage", Completed = true },
+            CancellationToken.None);
+
+        result.CompletedAt.ShouldNotBeNull();
+        result.CompletedAt.Value.ShouldBeGreaterThanOrEqualTo(result.CreatedAt);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenAlreadyCompleted_KeepsOriginalCompletedAt()
+    {
+        var task = TestEntities.CompletedTask(Guid.CreateVersion7(), "Ship it");
+        var originalCompletedAt = task.CompletedAt;
+
+        _taskRepository
+            .Setup(repository => repository.GetByIdAsync(task.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(task);
+        _taskRepository
+            .Setup(repository => repository.UpdateAsync(task, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var result = await _sut.UpdateAsync(
+            task.Id,
+            new UpdateTaskRequest { Title = "Ship it now", Completed = true },
+            CancellationToken.None);
+
+        // CompletedAt records when the task first became complete, not when it was last saved.
+        result.CompletedAt.ShouldBe(originalCompletedAt);
+        result.Title.ShouldBe("Ship it now");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenReopening_ClearsCompletedAt()
+    {
+        var task = TestEntities.CompletedTask(Guid.CreateVersion7(), "Ship it");
+        task.CompletedAt.ShouldNotBeNull();
+
+        _taskRepository
+            .Setup(repository => repository.GetByIdAsync(task.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(task);
+        _taskRepository
+            .Setup(repository => repository.UpdateAsync(task, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var result = await _sut.UpdateAsync(
+            task.Id,
+            new UpdateTaskRequest { Title = "Ship it", Completed = false },
+            CancellationToken.None);
+
+        result.Completed.ShouldBeFalse();
+        // A stale completion time on an incomplete task would contradict the flag.
+        result.CompletedAt.ShouldBeNull();
     }
 
     [Fact]

@@ -1,6 +1,6 @@
 using ProjectTaskApi.Domain.Entities;
 
-namespace ProjectTaskApi.Application.Projects;
+namespace ProjectTaskApi.Application.Projects.Interfaces;
 
 public interface IProjectRepository
 {
@@ -23,7 +23,15 @@ public interface IProjectRepository
         bool? completed,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Returns a tracked project for mutation, or <c>null</c> if no project has that ID.
+    /// Distinct from <see cref="GetByIdWithTasksAsync"/>, which reads untracked.
+    /// </summary>
+    Task<Project?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+
     Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken);
 
     Task AddAsync(Project project, CancellationToken cancellationToken);
+
+    Task UpdateAsync(Project project, CancellationToken cancellationToken);
 }

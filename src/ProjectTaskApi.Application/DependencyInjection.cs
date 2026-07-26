@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
-using ProjectTaskApi.Application.Projects;
-using ProjectTaskApi.Application.Tasks;
+using ProjectTaskApi.Application.Projects.Interfaces;
+using ProjectTaskApi.Application.Projects.Services;
+using ProjectTaskApi.Application.Tasks.Interfaces;
+using ProjectTaskApi.Application.Tasks.Services;
 
 namespace ProjectTaskApi.Application;
 

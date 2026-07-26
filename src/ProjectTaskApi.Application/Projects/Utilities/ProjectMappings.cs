@@ -1,8 +1,8 @@
 using ProjectTaskApi.Application.Projects.Dtos;
-using ProjectTaskApi.Application.Tasks;
+using ProjectTaskApi.Application.Tasks.Utilities;
 using ProjectTaskApi.Domain.Entities;
 
-namespace ProjectTaskApi.Application.Projects;
+namespace ProjectTaskApi.Application.Projects.Utilities;
 
 public static class ProjectMappings
 {

@@ -1,6 +1,6 @@
 # Project Task API
 
-A REST API for managing **Projects** and their **Tasks**. A project has many tasks; deleting a project deletes its tasks. The API exposes six endpoints, returns [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457) for every error, and ships with a Docker Compose setup so it runs with one command.
+A REST API for managing **Projects** and their **Tasks**. A project has many tasks; deleting a project deletes its tasks. The API exposes seven endpoints, returns [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457) for every error, and ships with a Docker Compose setup so it runs with one command.
 
 ---
 
@@ -30,6 +30,25 @@ src/
 tests/
 └── ProjectTaskApi.UnitTests/       service tests with mocked repositories
 ```
+
+Within `Application`, code is grouped by feature first and by kind second:
+
+```
+ProjectTaskApi.Application/
+├── Common/                 PagedResult, PageRequest
+├── Projects/
+│   ├── Dtos/               request and response contracts
+│   ├── Interfaces/         IProjectService, IProjectRepository
+│   ├── Services/           ProjectService
+│   └── Utilities/          ProjectMappings
+└── Tasks/
+    ├── Dtos/
+    ├── Interfaces/         ITaskService, ITaskRepository
+    ├── Services/           TaskService
+    └── Utilities/          TaskMappings
+```
+
+Feature first means everything about projects sits together; a change to how projects work touches one folder rather than four. Namespaces mirror the folder paths exactly.
 
 Dependencies point inward: `Api` → `Infrastructure` → `Application` → `Domain`. `Domain` references nothing.
 
@@ -112,6 +131,7 @@ tasks
   project_id   uuid          NOT NULL  FK -> projects(id) ON DELETE CASCADE
   title        varchar(200)  NOT NULL
   completed    boolean       NOT NULL DEFAULT false
+  completed_at timestamptz   NULL
   created_at   timestamptz   NOT NULL
 
   INDEX ix_tasks_project_id ON tasks(project_id)
@@ -121,13 +141,14 @@ tasks
 
 ## API endpoints
 
-Six endpoints, at the paths given in the brief, with no `/api` prefix.
+Seven endpoints, at the paths given in the brief, with no `/api` prefix.
 
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/projects` | List projects, paginated |
 | `POST` | `/projects` | Create a project |
 | `GET` | `/projects/{id}` | Get a project with its tasks |
+| `PUT` | `/projects/{id}` | Replace a project |
 | `POST` | `/projects/{id}/tasks` | Create a task for a project |
 | `PUT` | `/tasks/{id}` | Replace a task |
 | `DELETE` | `/tasks/{id}` | Delete a task |
@@ -200,9 +221,28 @@ curl "http://localhost:8080/projects/019f9fa5-2dd9-72d8-a119-15e387b0ea02?comple
       "projectId": "019f9fa5-2dd9-72d8-a119-15e387b0ea02",
       "title": "Ship it",
       "completed": true,
+      "completedAt": "2026-07-26T18:20:03.114287+00:00",
       "createdAt": "2026-07-26T18:17:41.719335+00:00"
     }
   ]
+}
+```
+
+### `PUT /projects/{id}`
+
+A full replacement. Only `name` is mutable — `createdAt` is a fact about the project's history, and its tasks are managed through their own endpoints.
+
+```bash
+curl -X PUT http://localhost:8080/projects/019f9fa5-2dd9-72d8-a119-15e387b0ea02 \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Website Redesign 2026"}'
+```
+
+```json
+{
+  "id": "019f9fa5-2dd9-72d8-a119-15e387b0ea02",
+  "name": "Website Redesign 2026",
+  "createdAt": "2026-07-26T18:17:10.361675+00:00"
 }
 ```
 
@@ -214,7 +254,7 @@ curl -X POST http://localhost:8080/projects/019f9fa5-2dd9-72d8-a119-15e387b0ea02
   -d '{"title":"Design homepage"}'
 ```
 
-`201 Created`, with `Location: /tasks/{id}`. New tasks always start incomplete, so `completed` is not accepted here.
+`201 Created`, with `Location: /tasks/{id}`. New tasks always start incomplete, so `completed` is not accepted here and `completedAt` comes back null.
 
 ```json
 {
@@ -222,6 +262,7 @@ curl -X POST http://localhost:8080/projects/019f9fa5-2dd9-72d8-a119-15e387b0ea02
   "projectId": "019f9fa5-2dd9-72d8-a119-15e387b0ea02",
   "title": "Design homepage",
   "completed": false,
+  "completedAt": null,
   "createdAt": "2026-07-26T18:17:41.713372+00:00"
 }
 ```
@@ -236,12 +277,15 @@ curl -X PUT http://localhost:8080/tasks/019f9fa5-a851-715e-853c-f8f15cc03ab3 \
   -d '{"title":"Design homepage v2","completed":true}'
 ```
 
+`completedAt` is managed by the server, not the client: it is stamped when a task first becomes complete, left alone on subsequent saves while it stays complete, and cleared if the task is reopened.
+
 ```json
 {
   "id": "019f9fa5-a851-715e-853c-f8f15cc03ab3",
   "projectId": "019f9fa5-2dd9-72d8-a119-15e387b0ea02",
   "title": "Design homepage v2",
   "completed": true,
+  "completedAt": "2026-07-26T18:22:47.902144+00:00",
   "createdAt": "2026-07-26T18:17:41.713372+00:00"
 }
 ```
@@ -261,6 +305,7 @@ curl -X DELETE http://localhost:8080/tasks/019f9fa5-a851-715e-853c-f8f15cc03ab3
 | `GET /projects` | 200 | 400 |
 | `POST /projects` | 201 | 400 |
 | `GET /projects/{id}` | 200 | 404 |
+| `PUT /projects/{id}` | 200 | 400, 404 |
 | `POST /projects/{id}/tasks` | 201 | 400, 404 |
 | `PUT /tasks/{id}` | 200 | 400, 404 |
 | `DELETE /tasks/{id}` | 204 | 404 |
@@ -312,7 +357,7 @@ Unrecognised exceptions are logged in full and answered with a generic body carr
 dotnet test
 ```
 
-15 tests covering every path through both services, including all failure modes. Repositories are mocked, so no database is required.
+21 tests covering every path through both services, including all failure modes. Repositories are mocked, so no database is required.
 
 The mocks are strict: an unexpected repository call fails the test rather than passing quietly. Several tests assert on calls that must *not* happen — no project is saved when the name invariant fails, and no task is saved against a project that does not exist.
 
@@ -320,7 +365,7 @@ The mocks are strict: an unexpected repository call fails the test rather than p
 
 ## Assumptions
 
-**Architecture.** Layered, with dependencies pointing inward. At six endpoints a single project would genuinely suffice; the separation is here to make the dependency rule explicit and to keep the service layer testable without EF Core. Deliberately absent for the same reason: MediatR, CQRS, AutoMapper, FluentValidation, a generic `IRepository<T>`, and Unit of Work. Six endpoints do not justify them.
+**Architecture.** Layered, with dependencies pointing inward. At this size a single project would genuinely suffice; the separation is here to make the dependency rule explicit and to keep the service layer testable without EF Core. Deliberately absent for the same reason: MediatR, CQRS, AutoMapper, FluentValidation, a generic `IRepository<T>`, and Unit of Work. Seven endpoints do not justify them.
 
 **Routes** are exactly as the brief specifies, with no `/api` prefix, even though a prefix is a common convention.
 
@@ -331,6 +376,8 @@ The mocks are strict: an unexpected repository call fails the test rather than p
 **Names and titles are trimmed, and whitespace-only values are rejected** with 400. `RequiredAttribute` trims before testing for emptiness, so `"   "` fails validation at the model-binding layer. The domain factories independently trim and reject empty values, so the invariant holds even for callers that bypass the API surface.
 
 **New tasks always start incomplete.** `completed` is not accepted when creating a task.
+
+**`completedAt` is derived, never client-supplied.** The entity keeps it in step with `completed`, so the two cannot disagree: it is stamped the moment a task first becomes complete, left untouched by later saves while the task stays complete, and cleared when a task is reopened. Recording when a task *first* finished is more useful than recording when its row was last written, and a stale timestamp on an incomplete task would be a lie the schema allows but the domain does not.
 
 **`PUT` is a full replacement**, so both `title` and `completed` are required. `completed` is modelled as a nullable bool specifically so that omitting it fails validation — a non-nullable bool cannot express absence, and a missing value would silently deserialize to `false`, quietly clearing the flag and making `PUT` a partial update in disguise.
 
@@ -344,6 +391,8 @@ The mocks are strict: an unexpected repository call fails the test rather than p
 
 **Paging defaults to 20 and is capped at 100** to bound response size. Results are sorted by `created_at` descending; paging without a deterministic sort returns overlapping rows between pages.
 
-**The task completion filter is a query parameter** on `GET /projects/{id}` rather than a separate `GET /projects/{id}/tasks` endpoint. The brief asks for six endpoints, so the API exposes six.
+**The task completion filter is a query parameter** on `GET /projects/{id}` rather than a separate `GET /projects/{id}/tasks` endpoint, which keeps filtering on the resource it filters instead of adding a route for it.
+
+**`PUT /projects/{id}` goes beyond the brief.** The brief lists six endpoints and omits any way to rename a project, which leaves projects immutable once created. The endpoint is included because a project management API that cannot correct a typo in a name is incomplete, and it follows the same full-replacement semantics as `PUT /tasks/{id}`.
 
 **No authentication.** The brief does not ask for it, and adding it would mean inventing a security model the assignment does not describe.

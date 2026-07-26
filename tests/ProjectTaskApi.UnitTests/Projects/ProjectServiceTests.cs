@@ -1,7 +1,8 @@
 using Moq;
 using ProjectTaskApi.Application.Common;
-using ProjectTaskApi.Application.Projects;
 using ProjectTaskApi.Application.Projects.Dtos;
+using ProjectTaskApi.Application.Projects.Interfaces;
+using ProjectTaskApi.Application.Projects.Services;
 using ProjectTaskApi.Domain.Entities;
 using ProjectTaskApi.Domain.Exceptions;
 using Shouldly;
@@ -157,6 +158,67 @@ public sealed class ProjectServiceTests
         // Nothing should reach the repository when the invariant fails.
         _projectRepository.Verify(
             repository => repository.AddAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenProjectExists_UpdatesName()
+    {
+        var project = Project.Create("Old Name");
+        _projectRepository
+            .Setup(repository => repository.GetByIdAsync(project.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(project);
+        _projectRepository
+            .Setup(repository => repository.UpdateAsync(project, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var result = await _sut.UpdateAsync(
+            project.Id,
+            new UpdateProjectRequest { Name = "  New Name  " },
+            CancellationToken.None);
+
+        result.Name.ShouldBe("New Name");
+        // Renaming must not re-date the project.
+        result.CreatedAt.ShouldBe(project.CreatedAt);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenProjectDoesNotExist_ThrowsProjectNotFoundException()
+    {
+        var missingId = Guid.CreateVersion7();
+        _projectRepository
+            .Setup(repository => repository.GetByIdAsync(missingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Project?)null);
+
+        var exception = await Should.ThrowAsync<ProjectNotFoundException>(
+            () => _sut.UpdateAsync(
+                missingId,
+                new UpdateProjectRequest { Name = "Anything" },
+                CancellationToken.None));
+
+        exception.Message.ShouldContain(missingId.ToString());
+        _projectRepository.Verify(
+            repository => repository.UpdateAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithWhitespaceName_ThrowsDomainValidationException()
+    {
+        var project = Project.Create("Old Name");
+        _projectRepository
+            .Setup(repository => repository.GetByIdAsync(project.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(project);
+
+        await Should.ThrowAsync<DomainValidationException>(
+            () => _sut.UpdateAsync(
+                project.Id,
+                new UpdateProjectRequest { Name = "   " },
+                CancellationToken.None));
+
+        project.Name.ShouldBe("Old Name");
+        _projectRepository.Verify(
+            repository => repository.UpdateAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 }

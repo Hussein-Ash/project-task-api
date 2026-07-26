@@ -17,6 +17,7 @@ public sealed class TaskItem
         ProjectId = projectId;
         Title = title;
         Completed = false;
+        CompletedAt = null;
         CreatedAt = createdAt;
     }
 
@@ -32,6 +33,12 @@ public sealed class TaskItem
     public string Title { get; private set; } = null!;
 
     public bool Completed { get; private set; }
+
+    /// <summary>
+    /// When the task was completed, or <c>null</c> while it is outstanding. Kept in step with
+    /// <see cref="Completed"/> by <see cref="Update"/>, so the two can never disagree.
+    /// </summary>
+    public DateTimeOffset? CompletedAt { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
 
@@ -51,6 +58,20 @@ public sealed class TaskItem
     public void Update(string title, bool completed)
     {
         Title = Validate(title);
+
+        if (completed && !Completed)
+        {
+            CompletedAt = DateTimeOffset.UtcNow;
+        }
+        else if (!completed)
+        {
+            // Reopening a task discards the old completion time rather than keeping a
+            // stale one that no longer describes the task's state.
+            CompletedAt = null;
+        }
+
+        // Re-saving an already-completed task leaves CompletedAt alone: it records when the
+        // task first became complete, not when it was last written.
         Completed = completed;
     }
 

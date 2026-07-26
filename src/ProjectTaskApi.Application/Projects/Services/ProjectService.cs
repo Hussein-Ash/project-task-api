@@ -1,9 +1,11 @@
 using ProjectTaskApi.Application.Common;
 using ProjectTaskApi.Application.Projects.Dtos;
+using ProjectTaskApi.Application.Projects.Interfaces;
+using ProjectTaskApi.Application.Projects.Utilities;
 using ProjectTaskApi.Domain.Entities;
 using ProjectTaskApi.Domain.Exceptions;
 
-namespace ProjectTaskApi.Application.Projects;
+namespace ProjectTaskApi.Application.Projects.Services;
 
 public sealed class ProjectService(IProjectRepository projectRepository) : IProjectService
 {
@@ -40,6 +42,21 @@ public sealed class ProjectService(IProjectRepository projectRepository) : IProj
         var project = Project.Create(request.Name);
 
         await projectRepository.AddAsync(project, cancellationToken);
+
+        return project.ToResponse();
+    }
+
+    public async Task<ProjectResponse> UpdateAsync(
+        Guid id,
+        UpdateProjectRequest request,
+        CancellationToken cancellationToken)
+    {
+        var project = await projectRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new ProjectNotFoundException(id);
+
+        project.Update(request.Name);
+
+        await projectRepository.UpdateAsync(project, cancellationToken);
 
         return project.ToResponse();
     }
