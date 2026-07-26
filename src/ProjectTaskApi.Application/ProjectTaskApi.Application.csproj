@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    This project must never reference EF Core. It declares repository interfaces;
+    Infrastructure implements them. That is what keeps the services unit-testable
+    against mocks with no database.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\ProjectTaskApi.Domain\ProjectTaskApi.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

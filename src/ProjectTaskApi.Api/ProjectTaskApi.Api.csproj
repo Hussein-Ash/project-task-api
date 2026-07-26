@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <!--
+      Pinned deliberately. Microsoft.AspNetCore.OpenApi 10.0.10 resolves Microsoft.OpenApi
+      2.0.0 transitively, which carries GHSA-v5pm-xwqc-g5wc (high). 2.7.5 is the first
+      patched release. Remove this line once the ASP.NET Core package ships the fix itself.
+    -->
+    <PackageReference Include="Microsoft.OpenApi" Version="2.11.0" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.16.16" />
+  </ItemGroup>
+
+  <!-- The API is the composition root, so it references the concrete Infrastructure types to register them. -->
+  <ItemGroup>
+    <ProjectReference Include="..\ProjectTaskApi.Application\ProjectTaskApi.Application.csproj" />
+    <ProjectReference Include="..\ProjectTaskApi.Infrastructure\ProjectTaskApi.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

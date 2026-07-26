@@ -1,0 +1,18 @@
+# Build output. Critically, obj/project.assets.json holds absolute host paths,
+# which break the container's --no-restore publish if copied in.
+**/bin/
+**/obj/
+
+# Local tooling and IDE state
+.git/
+.gitignore
+.vs/
+.vscode/
+.idea/
+.claude/
+
+# Not needed inside the image
+**/*.user
+**/Properties/launchSettings.json
+docker-compose*.yml
+README.md
