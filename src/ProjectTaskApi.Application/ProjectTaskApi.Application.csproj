@@ -4,7 +4,15 @@
     This project must never reference EF Core. It declares repository interfaces;
     Infrastructure implements them. That is what keeps the services unit-testable
     against mocks with no database.
+
+    The DI abstractions are the sole package here, and only so this layer can expose
+    its own AddApplication registration. Held at 10.0.4 to line up with the versions
+    EF Core brings into Infrastructure.
   -->
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.4" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ProjectTaskApi.Domain\ProjectTaskApi.Domain.csproj" />
